@@ -1,0 +1,18 @@
+# Virtual env
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+
+# Local data files
+usage.json
+users.json
+
+# OS junk
+.DS_Store
+Thumbs.db
