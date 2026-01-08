@@ -22,6 +22,9 @@ from aiogram.fsm.context import FSMContext
 
 from openai import AsyncOpenAI
 
+# ✅ Добавили для Web Service на Render (порт + healthcheck)
+from aiohttp import web
+
 # ---------- Timezone (with fallback) ----------
 from zoneinfo import ZoneInfo
 try:
@@ -52,7 +55,7 @@ WELCOME_IMAGE_PATH = "ewr.png"  # рядом с main.py
 
 QUESTIONS = [
     "1) Чем вы занимаетесь, расскажите что умеете?",
-    "2) Если бы вам не нужно было работать, то чем бы вы хотели заниматься?",
+    "2) Если бы вам не нужно было работать, то чемем бы вы хотели заниматься?",
     "3) Вы хотите быстрый результат или готовы работать в долгосрочную перспективу?",
     "4) Расскажите о вашем хобби.",
     "5) Вы командный игрок или одиночка?",
@@ -628,6 +631,25 @@ async def stop_cmd(message: Message):
     await remove_user(message.from_user.id)
     await message.answer("Ок. Я больше не буду писать тебе рассылки. Чтобы вернуться — нажми /start.")
 
+# ================== RENDER WEB SERVICE HEALTH SERVER ==================
+async def health_server():
+    """
+    Нужен для Render Web Service: сервис должен слушать порт.
+    Render прокидывает PORT в env. Мы слушаем "/" и отвечаем "OK".
+    """
+    app = web.Application()
+
+    async def handle(_request):
+        return web.Response(text="OK")
+
+    app.router.add_get("/", handle)
+
+    port = int(os.getenv("PORT", "10000"))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 # ================== MAIN ==================
 async def main():
     global openai_client
@@ -645,6 +667,10 @@ async def main():
     dp.include_router(router)
 
     print("Bot started.")
+
+    # ✅ Важно для Render Web Service: поднимаем HTTP сервер на PORT
+    await health_server()
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
